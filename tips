@@ -1,0 +1,8 @@
+1. Broadcast on one column: 
+   e.g. A + B[:, None], where A.shape = (N, D), and B.shape = (N)
+
+2. A.dot(B) + A.dot(C) = A.dot(B + C)
+
+3. max() with sum() (more generally, if condition with "sum"): 
+   matrix operation: np.maximum(); 
+   more complex operations: using binary matrix and dot product. 
