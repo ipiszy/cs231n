@@ -140,6 +140,7 @@ class Solver(object):
     self.best_val_acc = 0
     self.best_params = {}
     self.loss_history = []
+    self.cache_history = []
     self.train_acc_history = []
     self.val_acc_history = []
 
@@ -163,6 +164,10 @@ class Solver(object):
 
     # Compute loss and gradient
     loss, grads = self.model.loss(X_batch, y_batch)
+    #print "==== loss ===="
+    #print loss
+    #print "==== grads ===="
+    #print grads
     self.loss_history.append(loss)
 
     # Perform a parameter update
