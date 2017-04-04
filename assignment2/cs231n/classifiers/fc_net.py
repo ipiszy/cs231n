@@ -45,8 +45,8 @@ class TwoLayerNet(object):
     # weights and biases using the keys 'W1' and 'b1' and second layer weights #
     # and biases using the keys 'W2' and 'b2'.                                 #
     ############################################################################
-    self.params['W1'] = weight_scale * np.random.rand(input_dim, hidden_dim)
-    self.params['W2'] = weight_scale * np.random.rand(hidden_dim, num_classes)
+    self.params['W1'] = weight_scale * np.random.randn(input_dim, hidden_dim)
+    self.params['W2'] = weight_scale * np.random.randn(hidden_dim, num_classes)
     self.params['b1'] = 0
     self.params['b2'] = 0
     ############################################################################
@@ -78,7 +78,9 @@ class TwoLayerNet(object):
     # TODO: Implement the forward pass for the two-layer net, computing the    #
     # class scores for X and storing them in the scores variable.              #
     ############################################################################
-    
+    s1, cache1 = affine_relu_forward(X, self.params['W1'], self.params['b1'])
+    s2, cache2 = affine_forward(s1, self.params['W2'], self.params['b2'])
+    scores = s2
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -98,7 +100,13 @@ class TwoLayerNet(object):
     # automated tests, make sure that your L2 regularization includes a factor #
     # of 0.5 to simplify the expression for the gradient.                      #
     ############################################################################
-    pass
+    loss, ds2 = softmax_loss(s2, y)
+    ds1, grads['W2'], grads['b2'] = affine_backward(ds2, cache2)
+    dx, grads['W1'], grads['b1'] = affine_relu_backward(ds1, cache1)
+    
+    loss += 0.5 * self.reg * (np.sum(np.square(self.params['W1'])) + np.sum(np.square(self.params['W2'])))
+    grads['W2'] += self.params['W2'] * self.reg
+    grads['W1'] += self.params['W1'] * self.reg
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
