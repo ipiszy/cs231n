@@ -243,13 +243,21 @@ class FullyConnectedNet(object):
     # Go through the hidden layers.
     for i in range(1, self.num_layers):
         c = []
+        
         s, cache = affine_forward(s, self.params['W' + str(i)], self.params['b' + str(i)])
         c.append(cache)
+        
         if self.use_batchnorm:
             s, cache = batchnorm_forward(s, self.params['gamma' + str(i)], self.params['beta' + str(i)], self.bn_params[i - 1])
             c.append(cache)
+
         s, cache = relu_forward(s)
         c.append(cache)
+
+        if self.use_dropout:
+            s, cache = dropout_forward(s, self.dropout_param)
+            c.append(cache)
+
         self.caches.append(c)
     
     # Go through the last layer.
@@ -295,6 +303,9 @@ class FullyConnectedNet(object):
             ds, grads[w_key], grads[b_key] = affine_backward(ds, c[-ci])
             ci += 1
         else:
+            if self.use_dropout:
+                ds = dropout_backward(ds, c[-ci])
+                ci += 1
             ds = relu_backward(ds, c[-ci])
             ci += 1
             if self.use_batchnorm:
