@@ -178,6 +178,9 @@ class FullyConnectedNet(object):
     for i in range(1, self.num_layers + 1):
         self.params['W' + str(i)] = weight_scale * np.random.randn(dims[i - 1], dims[i])
         self.params['b' + str(i)] = np.zeros(dims[i])
+        if self.use_batchnorm and i < self.num_layers:
+            self.params['gamma' + str(i)] = np.ones(dims[i])
+            self.params['beta' + str(i)] = np.zeros(dims[i])
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -242,6 +245,9 @@ class FullyConnectedNet(object):
         c = []
         s, cache = affine_forward(s, self.params['W' + str(i)], self.params['b' + str(i)])
         c.append(cache)
+        if self.use_batchnorm:
+            s, cache = batchnorm_forward(s, self.params['gamma' + str(i)], self.params['beta' + str(i)], self.bn_params[i - 1])
+            c.append(cache)
         s, cache = relu_forward(s)
         c.append(cache)
         self.caches.append(c)
@@ -281,12 +287,21 @@ class FullyConnectedNet(object):
     for i in range(self.num_layers, 0, -1):
         w_key = 'W' + str(i)
         b_key = 'b' + str(i)
+        gamma_key = 'gamma' + str(i)
+        beta_key = 'beta' + str(i)
         c = self.caches[i - 1]
+        ci = 1
         if i == self.num_layers:
-            ds, grads[w_key], grads[b_key] = affine_backward(ds, c[-1])
+            ds, grads[w_key], grads[b_key] = affine_backward(ds, c[-ci])
+            ci += 1
         else:
-            ds = relu_backward(ds, c[-1])
-            ds, grads[w_key], grads[b_key] = affine_backward(ds, c[-2])
+            ds = relu_backward(ds, c[-ci])
+            ci += 1
+            if self.use_batchnorm:
+                ds, grads[gamma_key], grads[beta_key] = batchnorm_backward(ds, c[-ci])
+                ci += 1
+            ds, grads[w_key], grads[b_key] = affine_backward(ds, c[-ci])
+            ci += 1
         loss += 0.5 * self.reg * (np.sum(np.square(self.params[w_key])))
         grads[w_key] += self.params[w_key] * self.reg
 

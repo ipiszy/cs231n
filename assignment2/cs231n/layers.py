@@ -278,15 +278,8 @@ def batchnorm_backward_alt(dout, cache):
   N, D = dout.shape
   zero_centered_x, var_with_eps, gamma = cache
   
-  f = zero_centered_x
-  g = np.power(var_with_eps, -0.5)
-  df = 1 - 1 / N
-  dg = (-1 / N) * np.power(var_with_eps, -1.5) * zero_centered_x
-  dx = df * g + dg * f
-  dx = dout * gamma * dx
-
-  
-
+  dx = (gamma * np.power(var_with_eps, -0.5) * (dout - np.mean(dout, axis = 0)) -
+        zero_centered_x * np.power(var_with_eps, -1.5) * np.mean(dout * gamma * zero_centered_x, axis = 0))
   x = zero_centered_x / np.sqrt(var_with_eps)
   dgamma = np.sum(dout * x, axis = 0)
   dbeta = np.sum(dout, axis = 0)
