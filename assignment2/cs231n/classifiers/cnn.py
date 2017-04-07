@@ -36,6 +36,11 @@ class ThreeLayerConvNet(object):
     self.params = {}
     self.reg = reg
     self.dtype = dtype
+    self.hparams = {}
+    conv_param = {'stride': 1, 'pad': (filter_size - 1) / 2}
+    pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
+    self.hparams['conv'] = conv_param
+    self.hparams['pool'] = pool_param
     
     ############################################################################
     # TODO: Initialize weights and biases for the three-layer convolutional    #
@@ -47,7 +52,20 @@ class ThreeLayerConvNet(object):
     # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
     # of the output affine layer.                                              #
     ############################################################################
-    pass
+    C, H, W = input_dim
+    self.params['W1'] = weight_scale * np.random.randn(num_filters, C, filter_size, filter_size)
+    self.params['b1'] = np.zeros(num_filters)
+    stride, pad = conv_param['stride'], conv_param['pad']
+    H1 = 1 + (H + 2 * pad - filter_size) / stride
+    W1 = 1 + (W + 2 * pad - filter_size) / stride
+    pool_h, pool_w, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    H2 = 1 + (H1 - pool_h) / stride
+    W2 = 1 + (W1 - pool_w) / stride
+    self.params['W2'] = weight_scale * np.random.randn(H2 * W2 * num_filters, hidden_dim)
+    self.params['b2'] = np.zeros(hidden_dim)
+    self.params['W3'] = weight_scale * np.random.rand(hidden_dim, num_classes)
+    self.params['b3'] = np.zeros(num_classes)
+    
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -64,14 +82,11 @@ class ThreeLayerConvNet(object):
     """
     W1, b1 = self.params['W1'], self.params['b1']
     W2, b2 = self.params['W2'], self.params['b2']
-    W3, b3 = self.params['W3'], self.params['b3']
-    
-    # pass conv_param to the forward pass for the convolutional layer
-    filter_size = W1.shape[2]
-    conv_param = {'stride': 1, 'pad': (filter_size - 1) / 2}
+    W3, b3 = self.params['W3'], self.params['b3']    
+    conv_param, pool_param = self.hparams['conv'], self.hparams['pool']
 
+    # pass conv_param to the forward pass for the convolutional layer
     # pass pool_param to the forward pass for the max-pooling layer
-    pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
 
     scores = None
     ############################################################################
@@ -79,7 +94,9 @@ class ThreeLayerConvNet(object):
     # computing the class scores for X and storing them in the scores          #
     # variable.                                                                #
     ############################################################################
-    pass
+    scores, c1 = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+    scores, c2 = affine_relu_forward(scores, W2, b2)
+    scores, c3 = affine_forward(scores, W3, b3)
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -94,7 +111,14 @@ class ThreeLayerConvNet(object):
     # data loss using softmax, and make sure that grads[k] holds the gradients #
     # for self.params[k]. Don't forget to add L2 regularization!               #
     ############################################################################
-    pass
+    loss, dout = softmax_loss(scores, y)
+    dout, grads['W3'], grads['b3'] = affine_backward(dout, c3)
+    dout, grads['W2'], grads['b2'] = affine_relu_backward(dout, c2)
+    dout, grads['W1'], grads['b1'] = conv_relu_pool_backward(dout, c1)
+    
+    for i in range(1, 4):
+        loss += 0.5 * self.reg * np.sum(np.square(self.params['W' + str(i)]))
+        grads['W' + str(i)] += self.params['W' + str(i)] * self.reg
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
