@@ -394,7 +394,23 @@ def conv_forward_naive(x, w, b, conv_param):
   # TODO: Implement the convolutional forward pass.                           #
   # Hint: you can use the function np.pad for padding.                        #
   #############################################################################
-  pass
+  N, C, H, W = x.shape
+  F, C, HH, WW = w.shape
+  stride, pad = conv_param['stride'], conv_param['pad']
+  Hout = 1 + (H + 2 * pad - HH) / stride
+  Wout = 1 + (W + 2 * pad - WW) / stride
+  D = C * HH * WW
+
+  x = np.pad(x, ((0,0), (0,0), (pad,pad), (pad,pad)), 'constant', constant_values = (0, 0))
+  out = np.zeros((N, F, Hout, Wout))
+  for i in range(0, N):
+    for j in range(0, F):
+        for m in range(0, Hout):
+            for n in range(0, Wout):
+                h_idx = m * stride
+                w_idx = n * stride
+                # out[i, j, m, n] = np.dot(x[i, :, h_idx:h_idx+HH, w_idx:w_idx+WW].reshape(D), w[j].reshape(D, 1)) + b[j]
+                out[i, j, m, n] = np.sum(x[i, :, h_idx:h_idx+HH, w_idx:w_idx+WW] * w[j]) + b[j]
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -416,15 +432,29 @@ def conv_backward_naive(dout, cache):
   - db: Gradient with respect to b
   """
   dx, dw, db = None, None, None
+  x, w, b, conv_param = cache
+  F, C, HH, WW = w.shape
+  N, F, Hout, Wout = dout.shape
+  stride, pad = conv_param['stride'], conv_param['pad']
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
-  pass
+  dx = np.zeros(x.shape)
+  dw = np.zeros(w.shape)  
+  for i in range(0, N):
+    for j in range(0, F):
+        for m in range(0, Hout):
+            for n in range(0, Wout):
+                h_idx = m * stride
+                w_idx = n * stride
+                dx[i, :, h_idx:h_idx+HH, w_idx:w_idx+WW] += w[j] * dout[i, j, m, n]
+                dw[j] += x[i, :, h_idx:h_idx+HH, w_idx:w_idx+WW] * dout[i, j, m, n]
+  dx = dx[:, :, pad:-pad, pad:-pad]
+  db = np.sum(dout, axis = (0, 2, 3))
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
   return dx, dw, db
-
 
 def max_pool_forward_naive(x, pool_param):
   """
